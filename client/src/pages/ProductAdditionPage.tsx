@@ -1,23 +1,37 @@
-import {useState, useEffect,  useRef } from 'react';
-import { 
-  Plus, 
-  Upload, 
-  X, 
-  ArrowLeft, 
-  Save, 
-  Eye, 
-  Image as ImageIcon,
-  Star,
-  Package,
-  Tag,
-  Truck,
-  Shield,
-  AlertCircle,
-  Check
-} from 'lucide-react';
+import { useState, useRef } from 'react';
 import Header from '@/components/common/Header';
 import Navigation from '@/components/common/Navigation';
 import Footer from '@/components/common/Footer';
+import { Plus, X, Image as ImageIcon, Package, Tag, Star } from 'lucide-react';
+
+const categories = [
+  'Electronics', 'Clothing',  'Grocery'
+];
+const badges = [
+  'Bestseller', 'New Launch', 'Top Rated', "Editor's Choice", 'Deal of the Day', 'Premium', 'Limited Edition', 'Flash Sale'
+];
+const materialOptions = [
+  'Aluminium', 'Cotton', 'Plastic', 'Organinc',
+];
+const countryOptions = [
+  'India', 'China', 'USA', 'Germany', 'Bangladesh'
+];
+const transportModes = [
+  'Truck', 'Sea', 'Air'
+];
+const packagingTypes = [
+ 'Plastic Wrap', 'Cardboard Box', 'None', 'Glass Bottle', 'Mixed'
+];
+const recyclableOptions = [
+  'Yes', 'No', 'Partially'
+];
+
+const LeafIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} fill="#22c55e" viewBox="0 0 20 20">
+    <path d="M2.166 10.5c2.5-6.5 11.334-10 15.667-8.5C19.5 13.5 7.5 20 2.166 10.5z"/>
+    <path d="M7 13c2-2 5-5 8-7" stroke="#166534" strokeWidth="1" fill="none"/>
+  </svg>
+);
 
 const ProductAdditionPage = () => {
   const [formData, setFormData] = useState({
@@ -47,7 +61,12 @@ const ProductAdditionPage = () => {
       metaTitle: '',
       metaDescription: '',
       keywords: ''
-    }
+    },
+    material: '',
+    countryOfOrigin: '',
+    packagingType: '',
+    isRecyclable: '',
+    transportMode: ''
   });
 
   const [imagePreview, setImagePreview] = useState([]);
@@ -55,41 +74,13 @@ const ProductAdditionPage = () => {
   const [isPreview, setIsPreview] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [showEco, setShowEco] = useState(false);
+  const [ecoTabVisible, setEcoTabVisible] = useState(false);
   const fileInputRef = useRef(null);
 
-  const categories = [
-    'Electronics',
-    'Fashion',
-    'Home & Kitchen',
-    'Books',
-    'Sports',
-    'Beauty',
-    'Automotive',
-    'Toys',
-    'Health',
-    'Grocery'
-  ];
-
-  const badges = [
-    'Bestseller',
-    'New Launch',
-    'Top Rated',
-    'Editor\'s Choice',
-    'Deal of the Day',
-    'Premium',
-    'Limited Edition',
-    'Flash Sale'
-  ];
-
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
   const handleNestedInputChange = (parent, field, value) => {
@@ -144,7 +135,6 @@ const ProductAdditionPage = () => {
 
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files);
-    
     files.forEach(file => {
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -176,7 +166,6 @@ const ProductAdditionPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
     if (!formData.name.trim()) newErrors.name = 'Product name is required';
     if (!formData.brand.trim()) newErrors.brand = 'Brand is required';
     if (!formData.category) newErrors.category = 'Category is required';
@@ -186,22 +175,21 @@ const ProductAdditionPage = () => {
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (formData.images.length === 0) newErrors.images = 'At least one image is required';
     if (!formData.stockQuantity || parseInt(formData.stockQuantity) < 0) newErrors.stockQuantity = 'Valid stock quantity is required';
-    
+    if (!formData.material) newErrors.material = 'Material is required';
+    if (!formData.countryOfOrigin) newErrors.countryOfOrigin = 'Country of origin is required';
+    if (!formData.packagingType) newErrors.packagingType = 'Packaging type is required';
+    if (!formData.isRecyclable) newErrors.isRecyclable = 'Recyclable info is required';
+    if (!formData.transportMode) newErrors.transportMode = 'Transport mode is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = async () => {
     if (!validateForm()) return;
-    
     setIsSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Calculate discount
+      await new Promise(resolve => setTimeout(resolve, 1000));
       const discount = Math.round(((parseFloat(formData.originalPrice) - parseFloat(formData.price)) / parseFloat(formData.originalPrice)) * 100);
-      
       const productData = {
         ...formData,
         discount: `${discount}% off`,
@@ -210,7 +198,6 @@ const ProductAdditionPage = () => {
         reviews: 0,
         createdAt: new Date().toISOString()
       };
-      
       console.log('Product saved:', productData);
       alert('Product saved successfully!');
     } catch (error) {
@@ -220,9 +207,111 @@ const ProductAdditionPage = () => {
     }
   };
 
+  // --- ECO INFO SECTION ---
+  const renderEcoInfo = () => (
+    <div className="space-y-6 border rounded-lg p-6 bg-green-50 border-green-200 mt-6 relative">
+      <div className="absolute top-4 right-4">
+        <LeafIcon className="w-7 h-7" />
+      </div>
+      <h3 className="text-xl font-bold text-green-700 flex items-center gap-2 mb-2">
+        <LeafIcon className="w-6 h-6" />
+        Eco Information
+      </h3>
+      <p className="text-green-900 text-sm mb-4">
+        Buyers tend to prefer eco-friendly products. Providing accurate ecological information increases trust and sales.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Material */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Material *</label>
+          <select
+            value={formData.material || ''}
+            onChange={(e) => handleInputChange('material', e.target.value)}
+            className={`w-full px-4 py-2 border rounded-lg ${errors.material ? 'border-red-500' : 'border-gray-300'}`}
+          >
+            <option value="">Select material</option>
+            {materialOptions.map((mat) => <option key={mat} value={mat}>{mat}</option>)}
+          </select>
+          {errors.material && <p className="mt-1 text-sm text-red-600">{errors.material}</p>}
+        </div>
+        {/* Country of Origin */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Country of Origin *</label>
+          <select
+            value={formData.countryOfOrigin || ''}
+            onChange={(e) => handleInputChange('countryOfOrigin', e.target.value)}
+            className={`w-full px-4 py-2 border rounded-lg ${errors.countryOfOrigin ? 'border-red-500' : 'border-gray-300'}`}
+          >
+            <option value="">Select country</option>
+            {countryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          {errors.countryOfOrigin && <p className="mt-1 text-sm text-red-600">{errors.countryOfOrigin}</p>}
+        </div>
+        {/* Packaging Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Packaging Type *</label>
+          <select
+            value={formData.packagingType || ''}
+            onChange={(e) => handleInputChange('packagingType', e.target.value)}
+            className={`w-full px-4 py-2 border rounded-lg ${errors.packagingType ? 'border-red-500' : 'border-gray-300'}`}
+          >
+            <option value="">Select packaging type</option>
+            {packagingTypes.map((pack) => <option key={pack} value={pack}>{pack}</option>)}
+          </select>
+          {errors.packagingType && <p className="mt-1 text-sm text-red-600">{errors.packagingType}</p>}
+        </div>
+        {/* Is Product Recyclable */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Is Product Recyclable? *</label>
+          <select
+            value={formData.isRecyclable || ''}
+            onChange={(e) => handleInputChange('isRecyclable', e.target.value)}
+            className={`w-full px-4 py-2 border rounded-lg ${errors.isRecyclable ? 'border-red-500' : 'border-gray-300'}`}
+          >
+            <option value="">Select option</option>
+            {recyclableOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+          {errors.isRecyclable && <p className="mt-1 text-sm text-red-600">{errors.isRecyclable}</p>}
+        </div>
+        {/* Transport Mode */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Transport Mode *</label>
+          <select
+            value={formData.transportMode || ''}
+            onChange={(e) => handleInputChange('transportMode', e.target.value)}
+            className={`w-full px-4 py-2 border rounded-lg ${errors.transportMode ? 'border-red-500' : 'border-gray-300'}`}
+          >
+            <option value="">Select transport mode</option>
+            {transportModes.map((mode) => <option key={mode} value={mode}>{mode}</option>)}
+          </select>
+          {errors.transportMode && <p className="mt-1 text-sm text-red-600">{errors.transportMode}</p>}
+        </div>
+        {/* Weight in grams */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Weight (g)</label>
+          <input
+            type="number"
+            value={formData.weight}
+            onChange={(e) => handleInputChange('weight', e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            placeholder="0"
+            min="0"
+            step="1"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // --- BASIC INFO SECTION (remove eco fields from here) ---
   const renderBasicInfo = () => (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-gray-800">Basic Information</h2>
+       
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Product Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Product Name *
@@ -238,7 +327,7 @@ const ProductAdditionPage = () => {
           />
           {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
         </div>
-
+        {/* Brand */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Brand *
@@ -254,7 +343,7 @@ const ProductAdditionPage = () => {
           />
           {errors.brand && <p className="mt-1 text-sm text-red-600">{errors.brand}</p>}
         </div>
-
+        {/* Category */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Category *
@@ -273,7 +362,7 @@ const ProductAdditionPage = () => {
           </select>
           {errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}
         </div>
-
+        {/* Badge */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Badge
@@ -289,63 +378,59 @@ const ProductAdditionPage = () => {
             ))}
           </select>
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Original Price (₹) *
-          </label>
-          <input
-            type="number"
-            value={formData.originalPrice}
-            onChange={(e) => handleInputChange('originalPrice', e.target.value)}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-              errors.originalPrice ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="0.00"
-            min="0"
-            step="0.01"
-          />
-          {errors.originalPrice && <p className="mt-1 text-sm text-red-600">{errors.originalPrice}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Selling Price (₹) *
-          </label>
-          <input
-            type="number"
-            value={formData.price}
-            onChange={(e) => handleInputChange('price', e.target.value)}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-              errors.price ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="0.00"
-            min="0"
-            step="0.01"
-          />
-          {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price}</p>}
-          {formData.price && formData.originalPrice && (
-            <p className="mt-1 text-sm text-green-600">
-              Discount: {Math.round(((parseFloat(formData.originalPrice) - parseFloat(formData.price)) / parseFloat(formData.originalPrice)) * 100)}%
-            </p>
-          )}
-        </div>
       </div>
-
+      {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Description *
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
         <textarea
           value={formData.description}
           onChange={(e) => handleInputChange('description', e.target.value)}
           rows={4}
-          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-            errors.description ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-4 py-2 border rounded-lg ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
           placeholder="Enter product description"
         />
         {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+      </div>
+      {/* Original Price */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Original Price (₹) *
+        </label>
+        <input
+          type="number"
+          value={formData.originalPrice}
+          onChange={(e) => handleInputChange('originalPrice', e.target.value)}
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+            errors.originalPrice ? 'border-red-500' : 'border-gray-300'
+          }`}
+          placeholder="0.00"
+          min="0"
+          step="0.01"
+        />
+        {errors.originalPrice && <p className="mt-1 text-sm text-red-600">{errors.originalPrice}</p>}
+      </div>
+      {/* Selling Price */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Selling Price (₹) *
+        </label>
+        <input
+          type="number"
+          value={formData.price}
+          onChange={(e) => handleInputChange('price', e.target.value)}
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+            errors.price ? 'border-red-500' : 'border-gray-300'
+          }`}
+          placeholder="0.00"
+          min="0"
+          step="0.01"
+        />
+        {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price}</p>}
+        {formData.price && formData.originalPrice && (
+          <p className="mt-1 text-sm text-green-600">
+            Discount: {Math.round(((parseFloat(formData.originalPrice) - parseFloat(formData.price)) / parseFloat(formData.originalPrice)) * 100)}%
+          </p>
+        )}
       </div>
     </div>
   );
@@ -380,7 +465,6 @@ const ProductAdditionPage = () => {
         </div>
         {errors.images && <p className="mt-1 text-sm text-red-600">{errors.images}</p>}
       </div>
-
       {imagePreview.length > 0 && (
         <div>
           <h3 className="text-sm font-medium text-gray-700 mb-3">Uploaded Images</h3>
@@ -426,7 +510,6 @@ const ProductAdditionPage = () => {
             placeholder="Enter SKU"
           />
         </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Stock Quantity *
@@ -443,7 +526,6 @@ const ProductAdditionPage = () => {
           />
           {errors.stockQuantity && <p className="mt-1 text-sm text-red-600">{errors.stockQuantity}</p>}
         </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Weight (kg)
@@ -458,7 +540,6 @@ const ProductAdditionPage = () => {
             step="0.1"
           />
         </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Warranty
@@ -472,7 +553,6 @@ const ProductAdditionPage = () => {
           />
         </div>
       </div>
-
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Dimensions (cm)
@@ -504,7 +584,6 @@ const ProductAdditionPage = () => {
           />
         </div>
       </div>
-
       <div className="flex items-center">
         <input
           type="checkbox"
@@ -534,7 +613,6 @@ const ProductAdditionPage = () => {
             Add Specification
           </button>
         </div>
-
         <div className="space-y-3">
           {formData.specifications.map((spec, index) => (
             <div key={index} className="flex gap-3">
@@ -564,7 +642,6 @@ const ProductAdditionPage = () => {
           ))}
         </div>
       </div>
-
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium text-gray-900">Key Features</h3>
@@ -577,7 +654,6 @@ const ProductAdditionPage = () => {
             Add Feature
           </button>
         </div>
-
         <div className="space-y-3">
           {formData.features.map((feature, index) => (
             <div key={index} className="flex gap-3">
@@ -605,6 +681,7 @@ const ProductAdditionPage = () => {
 
   const tabs = [
     { id: 'basic', label: 'Basic Info', icon: Package },
+    ...(ecoTabVisible ? [{ id: 'eco', label: 'Eco Info', icon: LeafIcon }] : []),
     { id: 'images', label: 'Images', icon: ImageIcon },
     { id: 'inventory', label: 'Inventory', icon: Tag },
     { id: 'specifications', label: 'Specifications', icon: Star }
@@ -617,100 +694,82 @@ const ProductAdditionPage = () => {
       <Navigation/>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {isPreview ? (
-          // Preview Mode
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Product Preview</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div>
-                {imagePreview.length > 0 ? (
-                  <img
-                    src={imagePreview[0].url}
-                    alt="Product preview"
-                    className="w-full h-96 object-cover rounded-lg border"
-                  />
-                ) : (
-                  <div className="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <ImageIcon className="h-24 w-24 text-gray-300" />
-                  </div>
-                )}
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{formData.name || 'Product Name'}</h3>
-                <p className="text-gray-600 mb-4">{formData.brand || 'Brand'} • {formData.category || 'Category'}</p>
-                <div className="flex items-center gap-4 mb-4">
-                  <span className="text-3xl font-bold text-gray-900">₹{formData.price || '0'}</span>
-                  {formData.originalPrice && (
-                    <>
-                      <span className="text-lg text-gray-500 line-through">₹{formData.originalPrice}</span>
-                      <span className="text-green-600 font-semibold">
-                        {Math.round(((parseFloat(formData.originalPrice) - parseFloat(formData.price)) / parseFloat(formData.originalPrice)) * 100)}% off
-                      </span>
-                    </>
-                  )}
-                </div>
-                {formData.badge && (
-                  <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium mb-4">
-                    {formData.badge}
-                  </span>
-                )}
-                <p className="text-gray-700 mb-6">{formData.description || 'Product description will appear here.'}</p>
-                <div className="flex items-center gap-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    formData.inStock 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {formData.inStock ? 'In Stock' : 'Out of Stock'}
-                  </span>
-                  {formData.stockQuantity && (
-                    <span className="text-sm text-gray-600">
-                      {formData.stockQuantity} units available
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          // Edit Mode
-          <div className="flex gap-6">
-            {/* Sidebar */}
-            <div className="w-64 flex-shrink-0">
-              <div className="bg-white rounded-lg shadow-sm p-4">
-                <nav className="space-y-2">
-                  {tabs.map(tab => {
-                    const Icon = tab.icon;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                          activeTab === tab.id
-                            ? 'bg-green-100 text-green-700 border border-green-200'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
+        <div className="flex gap-6">
+          {/* Sidebar */}
+          <div className="w-64 flex-shrink-0">
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              {/* Eco Info Add/Remove Button */}
+              {!ecoTabVisible ? (
+                <button
+                  type="button"
+                  onClick={() => setEcoTabVisible(true)}
+                  className="w-full flex items-center gap-2 px-4 py-2 mb-4 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-all duration-200 animate-pulse"
+                >
+                  <LeafIcon className="w-5 h-5" />
+                  Add Eco Info Section
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEcoTabVisible(false);
+                    if (activeTab === 'eco') setActiveTab('basic');
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-2 mb-4 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all duration-200"
+                >
+                  <X className="w-5 h-5" />
+                  Remove Eco Info Section
+                </button>
+              )}
+              <nav className="space-y-2">
+                {tabs.map(tab => {
+                  const Icon = tab.icon;
+                  const isEco = tab.id === 'eco';
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200
+                        ${activeTab === tab.id
+                          ? 'bg-green-100 text-green-700 border border-green-200'
+                          : 'text-gray-700 hover:bg-gray-50'}
+                        ${isEco ? 'relative overflow-hidden' : ''}
+                      `}
+                      style={isEco ? { position: 'relative' } : {}}
+                    >
+                      <span
+                        className={isEco
+                          ? `transition-transform duration-200 ${activeTab === 'eco' ? 'scale-110 drop-shadow-[0_0_8px_#22c55e]' : 'group-hover:scale-105 group-hover:drop-shadow-[0_0_6px_#bbf7d0]'}` 
+                          : ''}
                       >
                         <Icon className="h-5 w-5" />
-                        {tab.label}
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1">
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                {activeTab === 'basic' && renderBasicInfo()}
-                {activeTab === 'images' && renderImages()}
-                {activeTab === 'inventory' && renderInventory()}
-                {activeTab === 'specifications' && renderSpecifications()}
-              </div>
+                      </span>
+                      {tab.label}
+                      {isEco && (
+                        <span
+                          className={`absolute inset-0 pointer-events-none rounded-lg transition-all duration-300
+                            ${activeTab === 'eco' ? 'ring-2 ring-green-400/60' : ''}
+                          `}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
           </div>
-        )}
+
+          {/* Main Content */}
+          <div className="flex-1">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              {activeTab === 'basic' && renderBasicInfo()}
+              {activeTab === 'eco' && renderEcoInfo()}
+              {activeTab === 'images' && renderImages()}
+              {activeTab === 'inventory' && renderInventory()}
+              {activeTab === 'specifications' && renderSpecifications()}
+            </div>
+          </div>
+        </div>
       </div>
       <Footer/>
     </div>
