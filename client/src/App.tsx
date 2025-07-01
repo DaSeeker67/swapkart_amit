@@ -7,6 +7,7 @@ import ProductDetailsPage from './pages/ProductPage'
 import CartPage from './pages/CartPage'
 import ProductAdditionPage from './pages/ProductAdditionPage'
 import SellerPage from './pages/SellerPage'
+import EcoDashboardPage from './pages/EcoDashboard'
 
 
 function App() {
@@ -22,8 +23,7 @@ function App() {
         <Route path='/product/:id' element={<ProductDetailsPage/>}/>
         <Route path='/cart' element={<CartPage/>}/>
         <Route path='/addProduct' element={<ProductAdditionPage/>}/> 
-        
-
+        <Route path='/eco-dashboard' element={<EcoDashboardPage/>}/>
       </Routes>
     </BrowserRouter>
     </AppProvider>
