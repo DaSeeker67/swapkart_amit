@@ -27,8 +27,10 @@ const CartPage = () => {
     updateQuantity, 
     removeFromCart, 
     addToWishlist,
-    getTotalPrice, 
-    getTotalItems 
+    cartCount,
+    cartTotal,
+    cartLoading,
+    cartError
   } = useAppContext();
 
   const [selectedAddress, setSelectedAddress] = useState(0);
@@ -52,28 +54,49 @@ const CartPage = () => {
     }
   ];
 
-  const moveToWishlist = (product) => {
-    addToWishlist(product);
-    removeFromCart(product.id);
-    console.log('Moved to wishlist:', product);
+  const moveToWishlist = async (product) => {
+    try {
+      await addToWishlist(product);
+      await removeFromCart(product.id);
+      console.log('Moved to wishlist:', product);
+    } catch (error) {
+      console.error('Error moving to wishlist:', error);
+    }
+  };
+
+  // Helper function to parse price strings
+  const parsePrice = (priceString) => {
+    if (typeof priceString === 'number') return priceString;
+    return parseFloat(priceString.replace(/[₹,$,]/g, ''));
   };
 
   const getTotalOriginalPrice = () => {
     return cartItems.reduce((total, item) => {
-      const price = parseFloat(item.product.originalPrice.replace(/[₹,]/g, ''));
-      return total + (price * item.quantity);
+      const originalPrice = parsePrice(item.product.originalPrice);
+      return total + (originalPrice * item.quantity);
     }, 0);
   };
 
+  const getTotalCurrentPrice = () => {
+    return cartItems.reduce((total, item) => {
+      const currentPrice = parsePrice(item.product.price);
+      return total + (currentPrice * item.quantity);
+    }, 0);
+  };
+
+  const getTotalItems = () => {
+    return cartItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
   const getTotalSavings = () => {
-    return getTotalOriginalPrice() - getTotalPrice();
+    return getTotalOriginalPrice() - getTotalCurrentPrice();
   };
 
   const applyCoupon = () => {
     if (couponCode.toLowerCase() === 'save10') {
       setAppliedCoupon({
         code: 'SAVE10',
-        discount: getTotalPrice() * 0.1,
+        discount: getTotalCurrentPrice() * 0.1,
         description: '10% off on total order'
       });
       setCouponCode('');
@@ -85,15 +108,61 @@ const CartPage = () => {
   };
 
   const getFinalTotal = () => {
-    const subtotal = getTotalPrice();
+    const subtotal = getTotalCurrentPrice();
     const couponDiscount = appliedCoupon ? appliedCoupon.discount : 0;
     const deliveryFee = subtotal > 500 ? 0 : 40;
     return subtotal - couponDiscount + deliveryFee;
   };
 
+  // Loading state
+  if (cartLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+          <div className="bg-white rounded-lg shadow-sm p-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your cart...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Error state
+  if (cartError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+          <div className="bg-white rounded-lg shadow-sm p-12">
+            <div className="text-red-500 mb-4">
+              <ShoppingCart className="h-12 w-12 mx-auto mb-2" />
+              <p className="text-lg font-semibold">Error loading cart</p>
+              <p className="text-sm text-gray-600">{cartError}</p>
+            </div>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Empty cart state
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
+        <Header />
+        <Navigation />
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center gap-3">
@@ -115,6 +184,7 @@ const CartPage = () => {
             </button>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -122,8 +192,8 @@ const CartPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Header/>
-      <Navigation/>
+      <Header />
+      <Navigation />
 
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
@@ -180,10 +250,10 @@ const CartPage = () => {
                       <div className="flex items-center gap-4 mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-lg font-bold text-gray-900">
-                            {item.product.price}
+                            ₹{parsePrice(item.product.price).toLocaleString()}
                           </span>
                           <span className="text-sm text-gray-500 line-through">
-                            {item.product.originalPrice}
+                            ₹{parsePrice(item.product.originalPrice).toLocaleString()}
                           </span>
                           <span className="text-green-600 text-sm font-semibold">
                             {item.product.discount}
@@ -209,8 +279,8 @@ const CartPage = () => {
                           <div className="flex items-center border border-gray-300 rounded-lg">
                             <button
                               onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                              className="p-2 hover:bg-gray-100 transition-colors"
-                              disabled={item.quantity <= 1}
+                              className="p-2 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={item.quantity <= 1 || cartLoading}
                             >
                               <Minus className="h-4 w-4 text-gray-600" />
                             </button>
@@ -219,7 +289,8 @@ const CartPage = () => {
                             </span>
                             <button
                               onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                              className="p-2 hover:bg-gray-100 transition-colors"
+                              className="p-2 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={cartLoading}
                             >
                               <Plus className="h-4 w-4 text-gray-600" />
                             </button>
@@ -228,14 +299,16 @@ const CartPage = () => {
                           {/* Action Buttons */}
                           <button
                             onClick={() => moveToWishlist(item.product)}
-                            className="flex items-center gap-1 px-3 py-2 text-gray-600 hover:text-green-600 transition-colors"
+                            className="flex items-center gap-1 px-3 py-2 text-gray-600 hover:text-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={cartLoading}
                           >
                             <Heart className="h-4 w-4" />
                             <span className="text-sm font-medium">Save for later</span>
                           </button>
                           <button
                             onClick={() => removeFromCart(item.product.id)}
-                            className="flex items-center gap-1 px-3 py-2 text-gray-600 hover:text-red-600 transition-colors"
+                            className="flex items-center gap-1 px-3 py-2 text-gray-600 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={cartLoading}
                           >
                             <Trash2 className="h-4 w-4" />
                             <span className="text-sm font-medium">Remove</span>
@@ -318,7 +391,7 @@ const CartPage = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Delivery Charges</span>
                   <span className="text-gray-900">
-                    {getTotalPrice() > 500 ? (
+                    {getTotalCurrentPrice() > 500 ? (
                       <span className="text-green-600">FREE</span>
                     ) : (
                       '₹40'
@@ -335,9 +408,12 @@ const CartPage = () => {
                 </div>
               </div>
 
-              <button className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold mt-6 flex items-center justify-center gap-2">
+              <button 
+                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold mt-6 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={cartLoading}
+              >
                 <CreditCard className="h-5 w-5" />
-                Place Order
+                {cartLoading ? 'Processing...' : 'Place Order'}
                 <ChevronRight className="h-4 w-4" />
               </button>
 
@@ -360,7 +436,7 @@ const CartPage = () => {
           </div>
         </div>
       </div>
-      <Footer/>
+      <Footer />
     </div>
   );
 };

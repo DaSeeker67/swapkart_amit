@@ -8,6 +8,7 @@ export interface Product {
   originalPrice: string;
   discount: string;
   rating: number;
+  ecoRating: number;
   reviews: number;
   image: string;
   badge: string;
